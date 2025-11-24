@@ -1,24 +1,46 @@
-from ollama import chat
-from ollama import ChatResponse
-from langchain_community.chat_models import ChatOllama
-from langchain_mcp import MCPToolkit
+import asyncio
+from langchain_ollama import ChatOllama
+from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import run_in_executor
 
-llm = ChatOllama(model="qwen2.5-coder:14b", base_url="http://localhost:11434")
-toolkit = MCPToolkit.from_uri("mcp://localhost:3000")
-tools = toolkit.get_tools()
+# Ensure the correct package is installed: pip install langchain-mcp-adapters
 
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", "You are a helpful assistant. Use tools when needed."),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}"),
-    ]
+llm = ChatOllama(model="granite4:3b", base_url="http://localhost:11434")
+
+# Correct way to initialize the MCP Client for an HTTP server
+# This configuration matches the expected format for MultiServerMCPClient
+mcp_client = MultiServerMCPClient(
+    {
+        "mcp_server": {
+            "transport": "streamable_http", # Use "streamable_http" for HTTP URLs
+            "url": "http://127.0.0.1:3000/mcp" # Append /mcp if that's the endpoint
+        }
+    }
 )
 
-agent = create_tool_calling_agent(llm, tools, prompt)
-executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+# The rest of the agent setup is done inside an async function or context
+async def run_agent():
+    # Use the client to get tools
+    tools = await mcp_client.get_tools()
 
-result = executor.invoke({"input": "Search the docs for MCP integration details and summarize."})
-print(result["output"])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", "You are a helpful options trading assistant. Use tools when needed."),
+            ("human", "{input}"),
+            ("placeholder", "{agent_scratchpad}"),
+        ]
+    )
+
+    agent = create_tool_calling_agent(llm, tools, prompt)
+    executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+    result = await executor.ainvoke({"input": "Search the docs for MCP integration details and summarize."})
+    print(result["output"])
+
+# Run the asynchronous function
+if __name__ == "__main__":
+    # Use run_in_executor to invoke the async function synchronously
+    # or just asyncio.run(run_agent()) if running in an async environment (like a Jupyter notebook)
+    asyncio.run(run_agent())
