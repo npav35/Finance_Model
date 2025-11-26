@@ -45,17 +45,9 @@ async def run_agent():
     executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
     # Ask it to actually use tools
-    result = await executor.ainvoke(
-        {
-            "input": (
-                "Use the available MCP (Model Context Protocol) tools to determine if this is a good option "
-                "ticker: Stock ticker symbol AAPL"
-                "option_type: call"
-                "expiration date December 31 2025"
-                "strike $320"
-            )
-        }
-    )
+    result = await executor.ainvoke({
+    "input": "Use MCP tools to get AAPL 320 call data for expiration 2025-12-19 and summarize it."
+})
     print("\n=== FINAL OUTPUT ===")
     print(result["output"])
 
