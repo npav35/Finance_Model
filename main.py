@@ -3,31 +3,39 @@ from langchain_ollama import ChatOllama
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import run_in_executor
 
-# Ensure the correct package is installed: pip install langchain-mcp-adapters
-
+# LLM: Ollama local model
 llm = ChatOllama(model="granite4:3b", base_url="http://localhost:11434")
 
-# Correct way to initialize the MCP Client for an HTTP server
-# This configuration matches the expected format for MultiServerMCPClient
+# MCP client config – assumes a streamable HTTP MCP server at port 3000
 mcp_client = MultiServerMCPClient(
     {
         "mcp_server": {
-            "transport": "streamable_http", # Use "streamable_http" for HTTP URLs
-            "url": "http://127.0.0.1:3000/mcp" # Append /mcp if that's the endpoint
+            "transport": "streamable_http",
+            "url": "http://127.0.0.1:3000/mcp",
         }
     }
 )
 
-# The rest of the agent setup is done inside an async function or context
 async def run_agent():
-    # Use the client to get tools
+    # 🔹 Load MCP tools from the server
     tools = await mcp_client.get_tools()
+    print("Loaded MCP tools:", [t.name for t in tools])
 
+    if not tools:
+        print("No tools loaded from MCP server. The agent will behave like a plain LLM.")
+        print("   -> Check that your MCP server is running on http://127.0.0.1:3000/mcp")
+    
+    # Prompt: clarify MCP meaning so the model doesn't hallucinate "Managed Cloud Platform"
     prompt = ChatPromptTemplate.from_messages(
         [
-            ("system", "You are a helpful options trading assistant. Use tools when needed."),
+            (
+                "system",
+                "You are a helpful assistant. "
+                "When I say MCP, I mean the **Model Context Protocol** tools "
+                "exposed by the connected MCP server,. "
+                "Use tools when they are helpful."
+            ),
             ("human", "{input}"),
             ("placeholder", "{agent_scratchpad}"),
         ]
@@ -36,11 +44,20 @@ async def run_agent():
     agent = create_tool_calling_agent(llm, tools, prompt)
     executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
-    result = await executor.ainvoke({"input": "Search the docs for MCP integration details and summarize."})
+    # Ask it to actually use tools
+    result = await executor.ainvoke(
+        {
+            "input": (
+                "Use the available MCP (Model Context Protocol) tools to determine if this is a good option "
+                "ticker: Stock ticker symbol AAPL"
+                "option_type: call"
+                "expiration date December 31 2025"
+                "strike $320"
+            )
+        }
+    )
+    print("\n=== FINAL OUTPUT ===")
     print(result["output"])
 
-# Run the asynchronous function
 if __name__ == "__main__":
-    # Use run_in_executor to invoke the async function synchronously
-    # or just asyncio.run(run_agent()) if running in an async environment (like a Jupyter notebook)
     asyncio.run(run_agent())
