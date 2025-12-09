@@ -31,10 +31,10 @@ async def run_agent():
         [
             (
                 "system",
-                "You are a helpful assistant. "
-                "When I say MCP, I mean the **Model Context Protocol** tools "
-                "exposed by the connected MCP server,. "
-                "Use tools when they are helpful."
+                "You are a helpful options trading assistant. "
+                "Use Model Context Protocol exposed by the MCP server tools when they are helpful"
+                "First try to use the get_option_data tool to get the option data"
+                "Then leverage the remaining tools if helpful to determine if the option is a good trade"
             ),
             ("human", "{input}"),
             ("placeholder", "{agent_scratchpad}"),
