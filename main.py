@@ -18,7 +18,7 @@ mcp_client = MultiServerMCPClient(
 )
 
 async def run_agent():
-    # 🔹 Load MCP tools from the server
+    # Load MCP tools from the server
     tools = await mcp_client.get_tools()
     print("Loaded MCP tools:", [t.name for t in tools])
 
