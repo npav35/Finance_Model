@@ -9,7 +9,7 @@ This agent is designed to help with options trading analysis. It leverages a loc
 ## Prerequisites
 
 - **Python 3.10+**
-- **Ollama**: Running a model like `granite4:3b`.
+- **Ollama**: Running a model like `granite4:3b`. Make sure you use a model that supports tool calling.
   - Ensure Ollama is running on `http://localhost:11434`.
 - **MCP Server**: A local MCP server running on port 3000.
   - The agent expects the server to be available at `http://127.0.0.1:3000/mcp`.
