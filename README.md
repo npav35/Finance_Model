@@ -30,3 +30,7 @@ This agent is designed to help with options trading analysis. It leverages a loc
     python main.py
     ```
 3.  The agent will initialize and attempt to connect to the MCP server. If successful, it will load available tools and execute the predefined prompt.
+
+## Demo
+
+![Agent Output Demo](demo_screenshot.png)
