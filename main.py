@@ -42,16 +42,22 @@ async def run_agent():
     )
 
     agent = create_tool_calling_agent(llm, tools, prompt)
-    executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    executor = AgentExecutor(agent=agent, tools=tools, verbose=True, return_intermediate_steps=True)
 
     # Ask it to actually use tools
     ticker = input("Enter stock ticker: ")
     price = input("Enter price: ")
-    expiration_date = input("Enter expiration date: ")
+    expiration_date = input("Enter expiration date (MM-DD-YYYY): ")
 
     result = await executor.ainvoke({
         "input": f"Use MCP tools to get {ticker} {price} call data for expiration {expiration_date} and summarize it."
     })
+    
+    print("\n=== TOOLS USED ===")
+    for step in result["intermediate_steps"]:
+        action = step[0]
+        print(f"Tool: {action.tool}, Input: {action.tool_input}")
+
     print("\n=== FINAL OUTPUT ===")
     print(result["output"])
 
