@@ -50,7 +50,10 @@ async def run_agent():
     expiration_date = input("Enter expiration date (MM-DD-YYYY): ")
 
     result = await executor.ainvoke({
-        "input": f"Use MCP tools to get {ticker} {price} call data for expiration {expiration_date} and summarize it."
+        "input": (
+            f"Use MCP tools to get {ticker} {price} call data for expiration {expiration_date} "
+            "and summarize it, telling me if it is a good trade."
+        )
     })
     
     print("\n=== TOOLS USED ===")
