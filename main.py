@@ -3,7 +3,7 @@ from langchain_ollama import ChatOllama
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate
-
+import perf_utils
 # LLM: Ollama local model
 llm = ChatOllama(model="granite4:3b", base_url="http://localhost:11434")
 
@@ -18,13 +18,22 @@ mcp_client = MultiServerMCPClient(
 )
 
 async def run_agent():
+    
     # Load MCP tools from the server
     tools = await mcp_client.get_tools()
     print("Loaded MCP tools:", [t.name for t in tools])
 
+    # Wrap tools with performance timer
+    for t in tools:
+        if hasattr(t, 'coroutine') and t.coroutine:
+            t.coroutine = perf_utils.time_it(f"Tool: {t.name}")(t.coroutine)
+        if hasattr(t, 'func') and t.func:
+             t.func = perf_utils.time_it(f"Tool: {t.name}")(t.func)
+
     if not tools:
         print("No tools loaded from MCP server. The agent will behave like a plain LLM.")
         print("   -> Check that your MCP server is running on http://127.0.0.1:3000/mcp")
+
     
     # Prompt: clarify MCP meaning so the model doesn't hallucinate "Managed Cloud Platform"
     prompt = ChatPromptTemplate.from_messages(
@@ -49,12 +58,13 @@ async def run_agent():
     price = input("Enter price: ")
     expiration_date = input("Enter expiration date (MM-DD-YYYY): ")
 
-    result = await executor.ainvoke({
-        "input": (
-            f"Use MCP tools to get {ticker} {price} call data for expiration {expiration_date} "
-            "and summarize it, telling me if it is a good trade."
-        )
-    })
+    with perf_utils.Timer("Total Agent Execution"):
+        result = await executor.ainvoke({
+            "input": (
+                f"Use MCP tools to get {ticker} {price} call data for expiration {expiration_date} "
+                "and summarize it, telling me if it is a good trade."
+            )
+        })
     
     print("\n=== TOOLS USED ===")
     for step in result["intermediate_steps"]:
@@ -63,6 +73,8 @@ async def run_agent():
 
     print("\n=== FINAL OUTPUT ===")
     print(result["output"])
+
+    perf_utils.BenchmarkTracker().report()
 
 if __name__ == "__main__":
     asyncio.run(run_agent())
