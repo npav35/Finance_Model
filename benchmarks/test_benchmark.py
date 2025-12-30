@@ -9,7 +9,7 @@ def mock_input(prompt):
     if "price" in prompt:
         return "150"
     if "date" in prompt:
-        return "2025-01-01"
+        return "2026-01-16"
     return ""
 
 async def run_benchmark():
@@ -23,6 +23,6 @@ async def run_benchmark():
         await main.run_agent()
 
 if __name__ == "__main__":
-    # Ensure current dir is in path
-    sys.path.append(".")
+    # Ensure parent dir is in path to import main
+    sys.path.append("..")
     asyncio.run(run_benchmark())

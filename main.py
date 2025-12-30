@@ -3,7 +3,7 @@ from langchain_ollama import ChatOllama
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate
-import perf_utils
+from utils import perf_utils
 # LLM: Ollama local model
 llm = ChatOllama(model="granite4:3b", base_url="http://localhost:11434")
 
