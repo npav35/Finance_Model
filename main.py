@@ -74,7 +74,7 @@ async def run_agent():
     print("\n=== FINAL OUTPUT ===")
     print(result["output"])
 
-    perf_utils.BenchmarkTracker().report()
+
 
 if __name__ == "__main__":
     asyncio.run(run_agent())

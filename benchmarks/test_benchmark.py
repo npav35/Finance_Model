@@ -1,6 +1,12 @@
 import asyncio
 import sys
+import os
 from unittest.mock import patch
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import main
+from utils import perf_utils
 
 # Mock input to avoid blocking
 def mock_input(prompt):
@@ -16,13 +22,9 @@ async def run_benchmark():
     print("Starting benchmark...")
     # patching input in main module
     with patch('builtins.input', side_effect=mock_input):
-        import main
-        # We need to run the agent. main.run_agent is async.
-        # However, main.py has `if __name__ == "__main__": asyncio.run(run_agent())`
-        # We can import `run_agent` and run it.
         await main.run_agent()
+        
+        perf_utils.BenchmarkTracker().report()
 
 if __name__ == "__main__":
-    # Ensure parent dir is in path to import main
-    sys.path.append("..")
     asyncio.run(run_benchmark())
