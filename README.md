@@ -37,6 +37,15 @@ python tests/stress_test.py
 ```
 This utility simulates a burst of 30 concurrent market scans. The system successfully handles the first 5 requests (the queue depth) and then gracefully drops the remainder with a `System Overloaded` message, proving the stability of the backend architecture.
 
+### Why Stress Testing? (Real-World Use Case)
+
+This setup simulates a high-reliability trading platform. Consider a scenario with **7 users or portfolios** requesting data at the exact same millisecond, and the server queue size is 5:
+
+1.  **Requests 1-6**: The server accepts the first request and puts the next 5 into an async queue. These users get fast, reliable results as soon as the worker is free.
+2.  **Request 7**: Instead of trying to "do everything at once" (which causes slow-downs or system-wide crashes), the server immediately rejects the 7th request with a `System Overloaded` error.
+
+This **Load Shedding** ensures that the system provides **deterministic performance**—it guarantees quality of service for existing users rather than failing for everyone.
+
 ## Demo
 
 ![Agent Output Demo](demo_screenshot.png)
