@@ -12,7 +12,7 @@ from utils import perf_utils
 def mock_input(prompt):
     if "ticker" in prompt:
         return "AAPL"
-    if "price" in prompt:
+    if "strike" in prompt:
         return "150"
     if "date" in prompt:
         return "2026-01-16"

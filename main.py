@@ -55,14 +55,18 @@ async def run_agent():
 
     # Ask it to actually use tools
     ticker = input("Enter stock ticker: ")
-    price = input("Enter price: ")
-    expiration_date = input("Enter expiration date (MM-DD-YYYY): ")
+    price = input("Enter target strike (or Enter for ATM): ")
+    expiration_date = input("Enter expiration date (MM-DD-YYYY, or Enter for nearest): ")
     option_type = input("Enter option type (call/put): ")
+
+    # Construct prompt parts dynamically to handle optional inputs
+    strike_part = f"strike {price}" if price.strip() else "ATM strike"
+    date_part = f"expiration {expiration_date}" if expiration_date.strip() else "nearest expiration"
 
     with perf_utils.Timer("Total Agent Execution"):
         result = await executor.ainvoke({
             "input": (
-                f"Use MCP tools to get {ticker} {price} {option_type} data for expiration {expiration_date} "
+                f"Use MCP tools to get {ticker} {option_type} data for {strike_part} and {date_part} "
                 "and summarize it, telling me if it is a good trade."
             )
         })
