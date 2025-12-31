@@ -29,7 +29,13 @@ This agent is designed to help with options trading analysis. It leverages a loc
     ```bash
     python main.py
     ```
-3.  The agent will initialize and attempt to connect to the MCP server. If successful, it will load available tools and execute the predefined prompt.
+
+### High-Load Stress Test
+To verify the **Backpressure Pipeline**, run the stress test script:
+```bash
+python tests/stress_test.py
+```
+This utility simulates a burst of 30 concurrent market scans. The system successfully handles the first 5 requests (the queue depth) and then gracefully drops the remainder with a `System Overloaded` message, proving the stability of the backend architecture.
 
 ## Demo
 
