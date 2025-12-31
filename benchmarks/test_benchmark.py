@@ -16,6 +16,8 @@ def mock_input(prompt):
         return "150"
     if "date" in prompt:
         return "2026-01-16"
+    if "option type" in prompt:
+        return "call"
     return ""
 
 async def run_benchmark():

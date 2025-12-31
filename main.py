@@ -57,11 +57,12 @@ async def run_agent():
     ticker = input("Enter stock ticker: ")
     price = input("Enter price: ")
     expiration_date = input("Enter expiration date (MM-DD-YYYY): ")
+    option_type = input("Enter option type (call/put): ")
 
     with perf_utils.Timer("Total Agent Execution"):
         result = await executor.ainvoke({
             "input": (
-                f"Use MCP tools to get {ticker} {price} call data for expiration {expiration_date} "
+                f"Use MCP tools to get {ticker} {price} {option_type} data for expiration {expiration_date} "
                 "and summarize it, telling me if it is a good trade."
             )
         })
