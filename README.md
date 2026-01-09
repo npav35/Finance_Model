@@ -46,6 +46,25 @@ This setup simulates a high-reliability trading platform. Consider a scenario wi
 
 This **Load Shedding** ensures that the system provides **deterministic performance**—it guarantees quality of service for existing users rather than failing for everyone.
 
+## Architecture Diagram
+
+```mermaid
+graph LR
+    subgraph Client ["Finance_Model Application"]
+        A["LLM Trading Agent"]
+        B["Stress test utility"]
+    end
+
+    subgraph Server ["mcp_calc Greeks Engine"]
+        C["Async Backpressure Pipeline"]
+        D["Black-Scholes Calculator"]
+    end
+
+    A -- "MCP Tools" --> C
+    B -- "Concurrent Bursts" --> C
+    C --> D
+```
+
 ## Demo
 
 ![Agent Output Demo](demo_screenshot.png)
