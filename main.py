@@ -41,9 +41,12 @@ async def run_agent():
             (
                 "system",
                 "You are a helpful options trading assistant. "
-                "Use Model Context Protocol exposed by the MCP server tools when they are helpful"
-                "First try to use the get_option_data tool to get the option data"
-                "Then leverage the remaining tools if helpful to determine if the option is a good trade"
+                "Use Model Context Protocol exposed by the MCP server tools. "
+                "Strictly follow this workflow:\n"
+                "1. Use `get_option_data` to fetch the option details.\n"
+                "2. IMMEDIATELY use the output from step 1 (S, K, T, r, sigma) to call the Greek calculation tools: "
+                "`calculate_delta`, `calculate_gamma`, `calculate_theta`, `calculate_vega`, and `calculate_rho`.\n"
+                "3. Analyze these Greeks to determine if the option is a good trade."
             ),
             ("human", "{input}"),
             ("placeholder", "{agent_scratchpad}"),
