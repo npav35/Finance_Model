@@ -82,15 +82,19 @@ async def run_agent():
             return
         print(f"Starting batch scan of {len(tickers)} tickers...")
         start_time = time.perf_counter()
-        tasks = [
-            get_option_data_tool.ainvoke({
+        tasks = []
+        for t in tickers:
+            tool_input = {
                 "ticker": t,
-                "option_type": option_type,
-                "expiration_date": None,
-                "strike": None
-            })
-            for t in tickers
-        ]
+                "option_type": option_type
+            }
+            # Add optional fields only if they have values (omitting them lets the tool use its defaults)
+            if expiration_date:
+                tool_input["expiration_date"] = expiration_date
+            if price:
+                tool_input["strike"] = float(price) # Ensure it's passed as a number if present
+
+            tasks.append(get_option_data_tool.ainvoke(tool_input))
         results = await asyncio.gather(*tasks, return_exceptions=True)
         end_time = time.perf_counter()
         success_count = 0
