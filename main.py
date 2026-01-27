@@ -1,4 +1,5 @@
 import asyncio
+import time
 from langchain_ollama import ChatOllama
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain.agents import create_tool_calling_agent, AgentExecutor
@@ -57,14 +58,66 @@ async def run_agent():
     executor = AgentExecutor(agent=agent, tools=tools, verbose=True, return_intermediate_steps=True)
 
     # Ask it to actually use tools
-    ticker = input("Enter stock ticker: ")
-    price = input("Enter target strike (or Enter for ATM): ")
-    expiration_date = input("Enter expiration date (MM-DD-YYYY, or Enter for nearest): ")
+    mode = input("Mode (single/batch): ").strip().lower() or "single"
+    if mode not in {"single", "batch"}:
+        print("Invalid mode. Use 'single' or 'batch'.")
+        return
+
+    ticker = input("Enter stock ticker: ") if mode == "single" else ""
+    price = input("Enter target strike (or Enter for ATM): ") if mode == "single" else ""
+    expiration_date = input("Enter expiration date (MM-DD-YYYY, or Enter for nearest): ") if mode == "single" else ""
     option_type = input("Enter option type (call/put): ")
+    batch_tickers = input("Batch scan tickers (comma-separated; uses nearest expiration + ATM strike per ticker): ") if mode == "batch" else ""
 
     # Construct prompt parts dynamically to handle optional inputs
     strike_part = f"strike {price}" if price.strip() else "ATM strike"
     date_part = f"expiration {expiration_date}" if expiration_date.strip() else "nearest expiration"
+
+    if mode == "batch":
+        # Fire concurrent requests to exercise backpressure without multiple clients.
+        tickers = [t.strip().upper() for t in batch_tickers.split(",") if t.strip()]
+        get_option_data_tool = next((t for t in tools if t.name == "get_option_data"), None)
+        if not get_option_data_tool:
+            print("CRITICAL: 'get_option_data' tool not found!")
+            return
+        print(f"Starting batch scan of {len(tickers)} tickers...")
+        start_time = time.perf_counter()
+        tasks = [
+            get_option_data_tool.ainvoke({
+                "ticker": t,
+                "option_type": option_type,
+                "expiration_date": None,
+                "strike": None
+            })
+            for t in tickers
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        end_time = time.perf_counter()
+        success_count = 0
+        drop_count = 0
+        error_count = 0
+        print("\n--- Batch Results ---")
+        for i, res in enumerate(results):
+            t = tickers[i]
+            if isinstance(res, Exception):
+                error_str = str(res)
+                if "System Overloaded" in error_str:
+                    print(f"[{t}] DROPPED (Backpressure Active)")
+                    drop_count += 1
+                else:
+                    print(f"[{t}] ERROR: {error_str}")
+                    error_count += 1
+            else:
+                print(f"[{t}] SUCCESS")
+                success_count += 1
+        total_time = end_time - start_time
+        print(f"\nSummary:")
+        print(f"Total Time: {total_time:.4f}s")
+        print(f"Total Requests: {len(tickers)}")
+        print(f"SUCCESS: {success_count}")
+        print(f"DROPPED: {drop_count}")
+        print(f"ERRORS: {error_count}")
+        return
 
     with perf_utils.Timer("Total Agent Execution"):
         result = await executor.ainvoke({
