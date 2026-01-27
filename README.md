@@ -30,6 +30,22 @@ This agent is designed to help with options trading analysis. It leverages a loc
     python main.py
     ```
 
+3.  **Choose a Mode**:
+
+    *   **Single Mode (Interactive)**:
+        -   Select `single` (default) when prompted.
+        -   Enter a stock ticker (e.g., `AAPL`).
+        -   (Optional) Enter a target strike price.
+        -   (Optional) Enter an expiration date.
+        -   Choose `call` or `put`.
+        -   The agent will fetch specific data and analyze the trade.
+
+    *   **Batch Mode**:
+        -   Select `batch` when prompted.
+        -   Choose `call` or `put`.
+        -   Enter a comma-separated list of tickers (e.g., `AAPL, NVDA, MSFT`).
+        -   The agent will scan these tickers using the nearest expiration and ATM strike, handling backpressure if necessary.
+
 ### High-Load Stress Test
 To verify the **Backpressure Pipeline**, run the stress test script:
 ```bash
