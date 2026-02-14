@@ -6,7 +6,7 @@ from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate
 from utils import perf_utils
 # LLM: Ollama local model
-llm = ChatOllama(model="granite4:3b", base_url="http://localhost:11434")
+llm = ChatOllama(model="qwen3:14b", base_url="http://localhost:11434")
 
 # MCP client config – assumes a streamable HTTP MCP server at port 3000
 mcp_client = MultiServerMCPClient(
@@ -63,9 +63,46 @@ async def run_agent():
         print("Invalid mode. Use 'single' or 'batch'.")
         return
 
-    ticker = input("Enter stock ticker: ") if mode == "single" else ""
+    ticker = input("Enter stock ticker: ").strip().upper() if mode == "single" else ""
+    
+    expiration_date = ""
+    if mode == "single" and ticker:
+        # Fetch available expirations
+        list_expirations_tool = next((t for t in tools if t.name == "list_expirations"), None)
+        if list_expirations_tool:
+            print(f"Fetching expiration dates for {ticker}...")
+            try:
+                dates = await list_expirations_tool.ainvoke({"ticker": ticker})
+                
+                # Handle potential string return (e.g. from JSON serialization)
+                if isinstance(dates, str):
+                    import json
+                    try:
+                        dates = json.loads(dates)
+                    except json.JSONDecodeError:
+                        # Fallback if it's a plain string or malformed
+                        pass
+
+                if dates and isinstance(dates, list):
+                    print("\nAvailable Expiration Dates:")
+                    for i, d in enumerate(dates):
+                        print(f"{i+1}. {d}")
+                    
+                    choice = input("\nSelect expiration date (number) or press Enter for nearest: ").strip()
+                    if choice.isdigit() and 1 <= int(choice) <= len(dates):
+                        expiration_date = dates[int(choice)-1]
+                        print(f"Selected: {expiration_date}")
+                    else:
+                        print("Using nearest expiration.")
+                else:
+                    print(f"No expiration dates found or invalid format: {type(dates)}")
+            except Exception as e:
+                print(f"Error fetching expirations: {e}")
+        else:
+             print("Warning: 'list_expirations' tool not found.")
+             expiration_date = input("Enter expiration date (YYYY-MM-DD, or Enter for nearest): ") 
+
     price = input("Enter target strike (or Enter for ATM): ") if mode == "single" else ""
-    expiration_date = input("Enter expiration date (MM-DD-YYYY, or Enter for nearest): ") if mode == "single" else ""
     option_type = input("Enter option type (call/put): ")
     batch_tickers = input("Batch scan tickers (comma-separated; uses nearest expiration + ATM strike per ticker): ") if mode == "batch" else ""
 
