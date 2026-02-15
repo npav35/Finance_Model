@@ -44,7 +44,7 @@ This agent is designed to help with options trading analysis. It leverages a loc
         -   Select `batch` when prompted.
         -   Choose `call` or `put`.
         -   Enter a comma-separated list of tickers (e.g., `AAPL, NVDA, MSFT`).
-        -   The agent will scan these tickers using the nearest expiration and ATM strike, handling backpressure if necessary.
+        -   The agent will run the same full tool-driven trade analysis used in single mode for each ticker (nearest expiration + ATM strike).
 
 ### High-Load Stress Test
 To verify the **Backpressure Pipeline**, run the stress test script:
