@@ -18,6 +18,14 @@ mcp_client = MultiServerMCPClient(
     }
 )
 
+def build_analysis_input(ticker: str, option_type: str, strike: str = "", expiration_date: str = "") -> str:
+    strike_part = f"strike {strike}" if strike.strip() else "ATM strike"
+    date_part = f"expiration {expiration_date}" if expiration_date.strip() else "nearest expiration"
+    return (
+        f"Use MCP tools to get {ticker} {option_type} data for {strike_part} and {date_part} "
+        "and summarize it, telling me if it is a good trade."
+    )
+
 async def run_agent():
     
     # Load MCP tools from the server
@@ -107,69 +115,61 @@ async def run_agent():
 
     price = input("Enter target strike (or Enter for ATM): ") if mode == "single" else ""
     option_type = input("Enter option type (call/put): ")
-    batch_tickers = input("Batch scan tickers (comma-separated; uses nearest expiration + ATM strike per ticker): ") if mode == "batch" else ""
-
-    # Construct prompt parts dynamically to handle optional inputs
-    strike_part = f"strike {price}" if price.strip() else "ATM strike"
-    date_part = f"expiration {expiration_date}" if expiration_date.strip() else "nearest expiration"
+    batch_tickers = input("Batch analyze tickers (comma-separated; full analysis per ticker with nearest expiration + ATM strike): ") if mode == "batch" else ""
 
     if mode == "batch":
-        # Fire concurrent requests to exercise backpressure without multiple clients.
         tickers = [t.strip().upper() for t in batch_tickers.split(",") if t.strip()]
-        get_option_data_tool = next((t for t in tools if t.name == "get_option_data"), None)
-        if not get_option_data_tool:
-            print("CRITICAL: 'get_option_data' tool not found!")
+        if not tickers:
+            print("No tickers provided.")
             return
-        print(f"Starting batch scan of {len(tickers)} tickers...")
-        start_time = time.perf_counter()
-        tasks = []
-        for t in tickers:
-            tool_input = {
-                "ticker": t,
-                "option_type": option_type
-            }
-            # Add optional fields only if they have values (omitting them lets the tool use its defaults)
-            if expiration_date:
-                tool_input["expiration_date"] = expiration_date
-            if price:
-                tool_input["strike"] = float(price) # Ensure it's passed as a number if present
 
-            tasks.append(get_option_data_tool.ainvoke(tool_input))
+        print(f"Starting batch analysis of {len(tickers)} tickers...")
+        start_time = time.perf_counter()
+
+        sem = asyncio.Semaphore(3)
+
+        async def analyze_ticker(ticker_symbol: str):
+            async with sem:
+                with perf_utils.Timer(f"Agent Execution [{ticker_symbol}]"):
+                    return await executor.ainvoke(
+                        {"input": build_analysis_input(ticker_symbol, option_type)}
+                    )
+
+        tasks = [analyze_ticker(t) for t in tickers]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         end_time = time.perf_counter()
+
         success_count = 0
-        drop_count = 0
         error_count = 0
+
         print("\n--- Batch Results ---")
         for i, res in enumerate(results):
             t = tickers[i]
             if isinstance(res, Exception):
-                error_str = str(res)
-                if "System Overloaded" in error_str:
-                    print(f"[{t}] DROPPED (Backpressure Active)")
-                    drop_count += 1
-                else:
-                    print(f"[{t}] ERROR: {error_str}")
-                    error_count += 1
+                print(f"[{t}] ERROR: {res}")
+                error_count += 1
             else:
-                print(f"[{t}] SUCCESS")
+                print(f"\n[{t}] SUCCESS")
+                print("Tools used:")
+                for step in res.get("intermediate_steps", []):
+                    action = step[0]
+                    print(f"- {action.tool} {action.tool_input}")
+                print("Output:")
+                print(res.get("output", ""))
                 success_count += 1
+
         total_time = end_time - start_time
         print(f"\nSummary:")
         print(f"Total Time: {total_time:.4f}s")
         print(f"Total Requests: {len(tickers)}")
         print(f"SUCCESS: {success_count}")
-        print(f"DROPPED: {drop_count}")
         print(f"ERRORS: {error_count}")
         return
 
     with perf_utils.Timer("Total Agent Execution"):
-        result = await executor.ainvoke({
-            "input": (
-                f"Use MCP tools to get {ticker} {option_type} data for {strike_part} and {date_part} "
-                "and summarize it, telling me if it is a good trade."
-            )
-        })
+        result = await executor.ainvoke(
+            {"input": build_analysis_input(ticker, option_type, price, expiration_date)}
+        )
     
     print("\n=== TOOLS USED ===")
     for step in result["intermediate_steps"]:
