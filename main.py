@@ -34,6 +34,8 @@ async def run_agent():
     if not tools:
         print("No tools loaded from MCP server. The agent will behave like a plain LLM.")
         print("   -> Check that your MCP server is running on http://127.0.0.1:3000/mcp")
+    elif not any(t.name == "get_rsi" for t in tools):
+        print("Warning: 'get_rsi' tool not found on MCP server; RSI step in workflow may be skipped.")
 
     
     # Prompt: clarify MCP meaning so the model doesn't hallucinate "Managed Cloud Platform"
@@ -47,7 +49,8 @@ async def run_agent():
                 "1. Use `get_option_data` to fetch the option details.\n"
                 "2. IMMEDIATELY use the output from step 1 (S, K, T, r, sigma) to call the Greek calculation tools: "
                 "`calculate_delta`, `calculate_gamma`, `calculate_theta`, `calculate_vega`, and `calculate_rho`.\n"
-                "3. Analyze these Greeks to determine if the option is a good trade."
+                "3. In the same analysis pass, call `get_rsi` to fetch RSI for the underlying ticker.\n"
+                "4. Analyze Greeks and RSI together to determine if the option is a good trade."
             ),
             ("human", "{input}"),
             ("placeholder", "{agent_scratchpad}"),
