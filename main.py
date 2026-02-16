@@ -57,7 +57,10 @@ async def run_agent():
                 "1. Use `get_option_data` to fetch the option details.\n"
                 "2. IMMEDIATELY use the output from step 1 (S, K, T, r, sigma) to call the Greek calculation tools: "
                 "`calculate_delta`, `calculate_gamma`, `calculate_theta`, `calculate_vega`, and `calculate_rho`.\n"
-                "3. In the same analysis pass, call `get_rsi` to fetch RSI for the underlying ticker.\n"
+                "3. In the same analysis pass, call `get_rsi` to fetch RSI for the underlying ticker. "
+                "Use named inputs exactly as: "
+                "`{{\"ticker\": \"<TICKER>\", \"period\": \"6mo\", \"interval\": \"1d\", \"window\": 14}}`. "
+                "Do not pass window as period.\n"
                 "4. Analyze Greeks and RSI together to determine if the option is a good trade."
             ),
             ("human", "{input}"),
